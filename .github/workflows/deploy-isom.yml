@@ -1,0 +1,34 @@
+name: OSL Pipeline — Deploy .isom Files
+
+on:
+  pull_request:
+    paths:
+      - "incoming/**"
+
+jobs:
+  validate-and-deploy:
+    name: Validate & Deploy .isom
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run OSL Pipeline deployment script
+        run: python scripts/deploy_isom.py
+
+      - name: Commit deployed files
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add library/ incoming/
+          git diff --cached --quiet || git commit -m "deploy: auto-deploy .isom files via OSL Pipeline"
+          git push origin HEAD
