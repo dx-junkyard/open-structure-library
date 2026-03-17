@@ -5,6 +5,10 @@ on:
     paths:
       - "incoming/**"
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   validate-and-deploy:
     name: Validate & Deploy .isom
@@ -24,11 +28,14 @@ jobs:
       - name: Run OSL Pipeline deployment script
         run: python scripts/deploy_isom.py
 
-      - name: Commit deployed files
-        if: success()
+      - name: Commit and Push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add library/ incoming/
-          git diff --cached --quiet || git commit -m "deploy: auto-deploy .isom files via OSL Pipeline"
-          git push origin HEAD
+          git add .
+          # 変更がある場合のみコミットしてプッシュ
+          if ! git diff --cached --quiet; then
+            git commit -m "docs: auto-format and deploy .isom files"
+            # PRのソースブランチに対して強制的にフルリファレンスでプッシュ
+            git push origin HEAD:refs/heads/${{ github.head_ref }}
+          fi
